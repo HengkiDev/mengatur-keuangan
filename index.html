@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pengatur Keuangan</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            transform: translateY(0);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+        }
+
+        .card.income {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .card.expense {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .card.total {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            color: #333;
+        }
+
+        .card h3 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        .card .amount {
+            font-size: 2.2em;
+            font-weight: bold;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .input-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .input-form {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .input-form h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            margin-top: 20px;
+        }
+
+        .transactions {
+            margin-top: 30px;
+        }
+
+        .transactions h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            text-align: center;
+        }
+
+        .transaction-list {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .transaction-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .transaction-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+
+        .transaction-info {
+            flex-grow: 1;
+        }
+
+        .transaction-description {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .transaction-category {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 3px;
+        }
+
+        .transaction-date {
+            font-size: 0.8em;
+            color: #999;
+        }
+
+        .transaction-amount {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .transaction-amount.income {
+            color: #28a745;
+        }
+
+        .transaction-amount.expense {
+            color: #dc3545;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            margin-left: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .delete-btn:hover {
+            background: #c82333;
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 768px) {
+            .input-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💰 Pengatur Keuangan</h1>
+            <p>Kelola pemasukan dan pengeluaran Anda dengan mudah</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="summary-cards">
+                <div class="card income">
+                    <h3>Total Pemasukan</h3>
+                    <div class="amount" id="totalIncome">Rp 0</div>
+                </div>
+                <div class="card expense">
+                    <h3>Total Pengeluaran</h3>
+                    <div class="amount" id="totalExpense">Rp 0</div>
+                </div>
+                <div class="card total">
+                    <h3>Saldo</h3>
+                    <div class="amount" id="totalBalance">Rp 0</div>
+                </div>
+            </div>
+
+            <div class="input-section">
+                <div class="input-form">
+                    <h3>➕ Tambah Pemasukan</h3>
+                    <div class="form-group">
+                        <label>Deskripsi</label>
+                        <input type="text" id="incomeDescription" placeholder="Contoh: Gaji bulan ini">
+                    </div>
+                    <div class="form-group">
+                        <label>Kategori</label>
+                        <select id="incomeCategory">
+                            <option value="Gaji">Gaji</option>
+                            <option value="Freelance">Freelance</option>
+                            <option value="Investasi">Investasi</option>
+                            <option value="Bisnis">Bisnis</option>
+                            <option value="Hadiah">Hadiah</option>
+                            <option value="Lainnya">Lainnya</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Jumlah (Rp)</label>
+                        <input type="number" id="incomeAmount" placeholder="0">
+                    </div>
+                    <button class="btn" onclick="addIncome()">Tambah Pemasukan</button>
+                </div>
+
+                <div class="input-form">
+                    <h3>➖ Tambah Pengeluaran</h3>
+                    <div class="form-group">
+                        <label>Deskripsi</label>
+                        <input type="text" id="expenseDescription" placeholder="Contoh: Belanja bulanan">
+                    </div>
+                    <div class="form-group">
+                        <label>Kategori</label>
+                        <select id="expenseCategory">
+                            <option value="Makanan">Makanan</option>
+                            <option value="Transportasi">Transportasi</option>
+                            <option value="Belanja">Belanja</option>
+                            <option value="Hiburan">Hiburan</option>
+                            <option value="Tagihan">Tagihan</option>
+                            <option value="Kesehatan">Kesehatan</option>
+                            <option value="Pendidikan">Pendidikan</option>
+                            <option value="Lainnya">Lainnya</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Jumlah (Rp)</label>
+                        <input type="number" id="expenseAmount" placeholder="0">
+                    </div>
+                    <button class="btn" onclick="addExpense()">Tambah Pengeluaran</button>
+                </div>
+            </div>
+
+            <button class="btn btn-download" onclick="downloadPDF()">📥 Download Laporan PDF</button>
+
+            <div class="transactions">
+                <h3>📋 Riwayat Transaksi</h3>
+                <div class="transaction-list" id="transactionList">
+                    <div class="empty-state">
+                        Belum ada transaksi. Mulai tambahkan pemasukan atau pengeluaran Anda!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let transactions = [];
+        let transactionId = 1;
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function formatDate(date) {
+            return new Intl.DateTimeFormat('id-ID', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }).format(date);
+        }
+
+        function addIncome() {
+            const description = document.getElementById('incomeDescription').value;
+            const category = document.getElementById('incomeCategory').value;
+            const amount = parseFloat(document.getElementById('incomeAmount').value);
+
+            if (!description || !amount || amount <= 0) {
+                alert('Mohon lengkapi semua field dengan benar!');
+                return;
+            }
+
+            const transaction = {
+                id: transactionId++,
+                type: 'income',
+                description: description,
+                category: category,
+                amount: amount,
+                date: new Date()
+            };
+
+            transactions.unshift(transaction);
+            
+            // Clear form
+            document.getElementById('incomeDescription').value = '';
+            document.getElementById('incomeAmount').value = '';
+            
+            updateDisplay();
+        }
+
+        function addExpense() {
+            const description = document.getElementById('expenseDescription').value;
+            const category = document.getElementById('expenseCategory').value;
+            const amount = parseFloat(document.getElementById('expenseAmount').value);
+
+            if (!description || !amount || amount <= 0) {
+                alert('Mohon lengkapi semua field dengan benar!');
+                return;
+            }
+
+            const transaction = {
+                id: transactionId++,
+                type: 'expense',
+                description: description,
+                category: category,
+                amount: amount,
+                date: new Date()
+            };
+
+            transactions.unshift(transaction);
+            
+            // Clear form
+            document.getElementById('expenseDescription').value = '';
+            document.getElementById('expenseAmount').value = '';
+            
+            updateDisplay();
+        }
+
+        function deleteTransaction(id) {
+            if (confirm('Apakah Anda yakin ingin menghapus transaksi ini?')) {
+                transactions = transactions.filter(t => t.id !== id);
+                updateDisplay();
+            }
+        }
+
+        function updateDisplay() {
+            // Calculate totals
+            const totalIncome = transactions
+                .filter(t => t.type === 'income')
+                .reduce((sum, t) => sum + t.amount, 0);
+                
+            const totalExpense = transactions
+                .filter(t => t.type === 'expense')
+                .reduce((sum, t) => sum + t.amount, 0);
+                
+            const totalBalance = totalIncome - totalExpense;
+
+            // Update summary cards
+            document.getElementById('totalIncome').textContent = formatCurrency(totalIncome);
+            document.getElementById('totalExpense').textContent = formatCurrency(totalExpense);
+            document.getElementById('totalBalance').textContent = formatCurrency(totalBalance);
+            
+            // Update balance card color
+            const balanceCard = document.querySelector('.card.total');
+            if (totalBalance >= 0) {
+                balanceCard.style.background = 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)';
+                balanceCard.style.color = '#333';
+            } else {
+                balanceCard.style.background = 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)';
+                balanceCard.style.color = '#721c24';
+            }
+
+            // Update transaction list
+            const transactionList = document.getElementById('transactionList');
+            
+            if (transactions.length === 0) {
+                transactionList.innerHTML = `
+                    <div class="empty-state">
+                        Belum ada transaksi. Mulai tambahkan pemasukan atau pengeluaran Anda!
+                    </div>
+                `;
+            } else {
+                transactionList.innerHTML = transactions.map(transaction => `
+                    <div class="transaction-item">
+                        <div class="transaction-info">
+                            <div class="transaction-description">${transaction.description}</div>
+                            <div class="transaction-category">${transaction.category}</div>
+                            <div class="transaction-date">${formatDate(transaction.date)}</div>
+                        </div>
+                        <div class="transaction-amount ${transaction.type}">
+                            ${transaction.type === 'income' ? '+' : '-'} ${formatCurrency(transaction.amount)}
+                        </div>
+                        <button class="delete-btn" onclick="deleteTransaction(${transaction.id})" title="Hapus transaksi">×</button>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Set font
+            doc.setFont('helvetica');
+            
+            // Title
+            doc.setFontSize(20);
+            doc.setFont('helvetica', 'bold');
+            doc.text('LAPORAN KEUANGAN', 105, 20, { align: 'center' });
+            
+            // Date generated
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Digenerate pada: ' + formatDate(new Date()), 105, 30, { align: 'center' });
+            
+            // Summary
+            const totalIncome = transactions
+                .filter(t => t.type === 'income')
+                .reduce((sum, t) => sum + t.amount, 0);
+                
+            const totalExpense = transactions
+                .filter(t => t.type === 'expense')
+                .reduce((sum, t) => sum + t.amount, 0);
+                
+            const totalBalance = totalIncome - totalExpense;
+            
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('RINGKASAN:', 20, 50);
+            
+            doc.setFont('helvetica', 'normal');
+            doc.text('Total Pemasukan: ' + formatCurrency(totalIncome), 20, 60);
+            doc.text('Total Pengeluaran: ' + formatCurrency(totalExpense), 20, 68);
+            doc.text('Saldo: ' + formatCurrency(totalBalance), 20, 76);
+            
+            // Transactions
+            if (transactions.length > 0) {
+                doc.setFont('helvetica', 'bold');
+                doc.text('DETAIL TRANSAKSI:', 20, 95);
+                
+                let yPos = 105;
+                
+                transactions.forEach((transaction, index) => {
+                    if (yPos > 270) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+                    
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(`${index + 1}. ${transaction.description}`, 20, yPos);
+                    
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(`   Kategori: ${transaction.category}`, 20, yPos + 7);
+                    doc.text(`   Tanggal: ${formatDate(transaction.date)}`, 20, yPos + 14);
+                    doc.text(`   Jumlah: ${transaction.type === 'income' ? '+' : '-'} ${formatCurrency(transaction.amount)}`, 20, yPos + 21);
+                    
+                    yPos += 35;
+                });
+            }
+            
+            // Save PDF
+            const filename = 'Laporan_Keuangan_' + new Date().toISOString().split('T')[0] + '.pdf';
+            doc.save(filename);
+        }
+
+        // Initialize display
+        updateDisplay();
+    </script>
+</body>
+</html>
