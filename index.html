@@ -349,6 +349,13 @@
             </div>
 
             <button class="btn btn-download" onclick="downloadPDF()">📥 Download Laporan PDF</button>
+            
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn" onclick="clearAllData()" style="background: linear-gradient(135deg, #ff6b6b 0%, #ffa500 100%); flex: 1;">🗑️ Hapus Semua Data</button>
+                <button class="btn" onclick="exportData()" style="background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%); flex: 1;">💾 Export Data</button>
+                <button class="btn" onclick="document.getElementById('importFile').click()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); flex: 1;">📂 Import Data</button>
+            </div>
+            <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importData(event)">
 
             <div class="transactions">
                 <h3>📋 Riwayat Transaksi</h3>
@@ -364,6 +371,30 @@
     <script>
         let transactions = [];
         let transactionId = 1;
+
+        // Load data from localStorage when page loads
+        function loadData() {
+            const savedTransactions = localStorage.getItem('financialTransactions');
+            const savedTransactionId = localStorage.getItem('transactionId');
+            
+            if (savedTransactions) {
+                transactions = JSON.parse(savedTransactions);
+                // Convert date strings back to Date objects
+                transactions.forEach(transaction => {
+                    transaction.date = new Date(transaction.date);
+                });
+            }
+            
+            if (savedTransactionId) {
+                transactionId = parseInt(savedTransactionId);
+            }
+        }
+
+        // Save data to localStorage
+        function saveData() {
+            localStorage.setItem('financialTransactions', JSON.stringify(transactions));
+            localStorage.setItem('transactionId', transactionId.toString());
+        }
 
         function formatCurrency(amount) {
             return new Intl.NumberFormat('id-ID', {
@@ -404,6 +435,7 @@
             };
 
             transactions.unshift(transaction);
+            saveData(); // Save to localStorage
             
             // Clear form
             document.getElementById('incomeDescription').value = '';
@@ -432,6 +464,7 @@
             };
 
             transactions.unshift(transaction);
+            saveData(); // Save to localStorage
             
             // Clear form
             document.getElementById('expenseDescription').value = '';
@@ -443,6 +476,7 @@
         function deleteTransaction(id) {
             if (confirm('Apakah Anda yakin ingin menghapus transaksi ini?')) {
                 transactions = transactions.filter(t => t.id !== id);
+                saveData(); // Save to localStorage after deletion
                 updateDisplay();
             }
         }
@@ -567,8 +601,91 @@
             doc.save(filename);
         }
 
+        // Clear all data
+        function clearAllData() {
+            if (confirm('Apakah Anda yakin ingin menghapus SEMUA data? Tindakan ini tidak dapat dibatalkan!')) {
+                if (confirm('Konfirmasi sekali lagi: Semua data akan terhapus permanen!')) {
+                    transactions = [];
+                    transactionId = 1;
+                    localStorage.removeItem('financialTransactions');
+                    localStorage.removeItem('transactionId');
+                    updateDisplay();
+                    alert('Semua data telah dihapus!');
+                }
+            }
+        }
+
+        // Export data to JSON file
+        function exportData() {
+            if (transactions.length === 0) {
+                alert('Tidak ada data untuk di-export!');
+                return;
+            }
+
+            const dataToExport = {
+                transactions: transactions,
+                transactionId: transactionId,
+                exportDate: new Date().toISOString(),
+                version: '1.0'
+            };
+
+            const dataStr = JSON.stringify(dataToExport, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = 'financial_data_' + new Date().toISOString().split('T')[0] + '.json';
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+        }
+
+        // Import data from JSON file
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    if (importedData.transactions && Array.isArray(importedData.transactions)) {
+                        if (transactions.length > 0) {
+                            if (!confirm('Data yang diimport akan mengganti data yang sudah ada. Lanjutkan?')) {
+                                return;
+                            }
+                        }
+
+                        transactions = importedData.transactions;
+                        transactionId = importedData.transactionId || (transactions.length > 0 ? Math.max(...transactions.map(t => t.id)) + 1 : 1);
+
+                        // Convert date strings back to Date objects
+                        transactions.forEach(transaction => {
+                            transaction.date = new Date(transaction.date);
+                        });
+
+                        saveData();
+                        updateDisplay();
+                        alert('Data berhasil diimport!');
+                    } else {
+                        alert('File tidak valid! Pastikan file adalah export dari aplikasi ini.');
+                    }
+                } catch (error) {
+                    alert('Error membaca file: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+            
+            // Reset file input
+            event.target.value = '';
+        }
+
         // Initialize display
-        updateDisplay();
+        window.addEventListener('load', function() {
+            loadData();
+            updateDisplay();
+        });
     </script>
 </body>
 </html>
